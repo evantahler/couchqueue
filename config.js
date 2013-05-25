@@ -9,10 +9,10 @@ var configData = {};
 
 configData.general = {
   apiVersion: "6.0.0",
-  serverName: "actionHero API",
+  serverName: "couchqueue",
   // id: "myActionHeroServer",                                    // id can be set here, or generated dynamically.  be sure that every server you run as a unique ID (which will happen when genrated dynamically)
   serverToken: "change-me",                                       // A unique token to your application which servers will use to authenticate to eachother
-  welcomeMessage : "Hello! Welcome to the actionHero api",        // The welcome message seen by TCP and webSocket clients upon connection
+  welcomeMessage : "Hello! Welcome to the couchqueue api",        // The welcome message seen by TCP and webSocket clients upon connection
   flatFileDirectory: __dirname + "/public/",                      // The directory which will be the root for the /public route
   flatFileNotFoundMessage: "Sorry, that file is not found :(",    // The body message to acompany 404 (file not found) errors regading flat files
   serverErrorMessage: "The server experienced an internal error", // The message to acompany 500 errors (internal server errors)
@@ -20,7 +20,7 @@ configData.general = {
   defaultLimit: 100,                                              // defaultLimit & defaultOffset are useful for limiting the length of response lists. 
   defaultOffset: 0,
   workers : 5,                                                    // The number of internal "workers" (timers) this node will have.
-  developmentMode: false,                                         // watch for changes in actions and tasks, and reload/restart them on the fly
+  developmentMode: true,                                          // watch for changes in actions and tasks, and reload/restart them on the fly
   pidFileDirectory: process.cwd() + "/pids/",                     // the location of the directory to keep pidfiles
   simultaniousActions: 5                                          // how many pending actions can a single connection be working on 
 };
@@ -79,6 +79,18 @@ configData.faye = {
   timeout: 45,
   ping: null,
 };
+
+///////////
+// COUCH //
+///////////
+
+configData.couchbase = {
+  "debug" : false,
+  "hosts" : [ "localhost:8091" ],
+  "password" : "password",
+  "bucket" : "couchqueue",
+  "user" : "couchqueue"
+}
 
 /////////////
 // SERVERS //
