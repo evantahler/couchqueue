@@ -66,7 +66,13 @@ Assuming a key called "key":
               if(err){
                 callback(err);
               }else{
-                callback(null);
+                if(typeof self._configure == "function"){
+                  self.configure(function(err){
+                    callback(err);
+                  });
+                }else{
+                  callback(null);
+                }
               }
             });
           }
@@ -173,7 +179,7 @@ Assuming a key called "key":
     });
   }
 
-  api.couchbase.structure.prototype.addChild = function(suffix, data, callback){
+  api.couchbase.structure.prototype.addChild = function(suffix, data, callback, overwrite){
     var self = this;
     if(typeof data === 'function'){ callback = data; data = null; }
     if(data == null){ data = {}; }
@@ -181,7 +187,7 @@ Assuming a key called "key":
     self.childExists(suffix, function(err, exists){
       if(err != null){
         callback(err);
-      }else if(exists === true){
+      }else if(exists === true && overwrite !== true){
         callback(new Error("child already exists"));
       }else{
         self.bucket.set(childKey, data, function(err){
@@ -189,7 +195,7 @@ Assuming a key called "key":
             callback(err)
           }else{
             self.metadata.childKeys.push(suffix);
-            self.save(function(err){
+            self.touch(function(err){
               callback(err);
             });
           }
@@ -212,9 +218,29 @@ Assuming a key called "key":
             callback(err)
           }else{
             self.metadata.childKeys.splice(self.metadata.childKeys.indexOf(suffix), 1);
-            self.save(function(err){
+            self.touch(function(err){
               callback(err);
             });
+          }
+        });
+      }
+    });
+  }
+
+  api.couchbase.structure.prototype.getChild = function(suffix, callback){
+    var self = this;
+    var childKey = self.key + self.keySeperator() + suffix;
+    self.childExists(suffix, function(err, exists){
+      if(err != null){
+        callback(err);
+      }else if(exists === false){
+        callback(new Error("child does not exist"));
+      }else{
+        self.bucket.get(childKey, function(err, doc, metadata){
+          if(err != null){
+            callback(err);
+          }else{
+            callback(null, doc);
           }
         });
       }
@@ -270,30 +296,281 @@ Assuming a key called "key":
   - key:n element at position n
   */
 
-  api.couchbase.array.prototype = new api.couchbase.structure;
+  api.couchbase.array = function(key, bucket){
+      api.couchbase.structure.call(this, key, bucket);
+  }
 
   api.couchbase.array.length = function(callback){
-
+    var self = this;
+    self.getCount(function(err, count){
+      callback(err, count);
+    });
   }
 
   api.couchbase.array.get = function(index, callback){
-    
+    var self = this;
+    index = Math.abs(parseInt(index));
+    self.length(function(err, length){
+      if(err != null){
+        callback(err);
+      }else if(index > length){
+        callback(new Error("index out of bounds"));
+      }else{
+        self.getChild(index, function(err, doc){
+          callback(err, doc);
+        });
+      }
+    });
   }
 
   api.couchbase.array.set = function(index, data, callback){
-    
+    var self = this;
+    index = Math.abs(parseInt(index));
+    self.length(function(err, length){
+      if(err != null){
+        callback(err);
+      }else{
+        self.addChild(index, function(err, doc){
+          if(err != null){
+            callback(err);
+          }else{
+            if(index > length){
+              self.forceCounter(index, function(err){
+                self.touch(function(err){
+                  callback(err, doc);
+                });
+              });
+            }else{
+              self.touch(function(err){
+                callback(err, doc);
+              });
+            }
+          }
+        });
+      }
+    });
   }
 
-  api.couchbase.array.pop = function(){
-    
+  api.couchbase.array.getAll = function(callback){
+    var self = this;
+    self.length(function(err, length){
+      if(err != null){
+        callback(err);
+      }else if(length === 0){
+        callback(null, []);
+      }else{
+        var i = 0;
+        var response = [];
+        var found = 0;
+        while(i <= length){
+          (function(i){
+            self.get(i, function(err, data){
+              found++;
+              response[i] = data;
+              if(found == length){
+                callback(null, response);
+              }
+            });
+          })(i)
+          i++;
+        }
+      }
+    });
   }
 
-  api.couchbase.array.push = function(data, callback){
-    
+  ///////////
+  // List //
+  ///////////
+
+  /*
+  Assuming a list called "key":
+
+  - key (the main document, holds metadata & timestamps)
+  - key:_counter (counter for this document; used as the array index and length)
+  - key:_readCounter (counter for reading)
+  - key:0 element at position 0
+  - key:n element at position n
+  */
+
+  api.couchbase.queue = function(key, bucket){
+      api.couchbase.structure.call(this, key, bucket);
   }
 
-  api.couchbase.array.compact = function(callback){
-    
+  api.couchbase.queue._configure = function(callback){
+    var self = this;
+    self.addChild("_readCounter", 0, function(err){
+      callback(err);
+    });
+  }
+
+  api.couchbase.queue.length = function(callback){
+    var self = this;
+    self.getCount(function(err, count){
+      if(err != null){
+        callback(err)
+      }else{
+        self.getChild("_readCounter", function(err, readCount){
+          var length = count - readCount;
+          callback(err, length);
+        });
+      }
+    });
+  }
+
+  api.couchbase.queue.pop = function(callback){
+    var self = this;
+    var readCounterKey = self.key + self.keySeperator() + "_readCounter";
+    self.bucket.incr(readCounterKey, function(err, readCount){
+      if(err != null){
+        callback(err);
+      }else{
+        self.getChild(readCount, function(err, data){
+          if(err != null){
+            callback(err);
+          }else{
+            self.removeChild(readCount, function(err){
+              callback(err, data)
+            });
+          }
+        });
+      }
+    });
+  }
+
+  api.couchbase.queue.push = function(data, callback){
+    var self = this;
+    self.incr(function(err, count){
+      if(err != null){
+        callback(err);
+      }else{
+        self.addChild("count", data, function(err){
+          callback(err);
+        });
+      }
+    });
+  }
+
+  api.couchbase.queue.getAll = function(callback){
+    var self = this;
+    self.getCount(function(err, count){
+      if(err != null){
+        callback(err)
+      }else{
+        self.getChild("_readCounter", function(err, readCount){
+          if(err != null){
+            callback(err)
+          }else{
+            var length = count - readCount;
+            var i = count;
+            var completed = 0;
+            var data = [];
+            while(i <= readCount){
+              (function(i){
+                self.getChild(i, function(err, doc){
+                  data[i] = doc;
+                  completed++;
+                  if(completed == length){
+                    callback(err, data);
+                  }
+                });
+              })(i)
+              i++;
+            }
+          }
+        });
+      }
+    });
+  }
+
+  ///////////
+  // Hash //
+  ///////////
+
+  /*
+  Assuming a hash called "key":
+
+  - key (the main document, holds metadata & timestamps)
+  - key:_counter (unused)
+  - key:aaa element at key aaa
+  - key:nnn element at position nnn
+  */
+
+  api.couchbase.hash = function(key, bucket){
+      api.couchbase.structure.call(this, key, bucket);
+  }
+
+  api.couchbase.hash.keys = function(callback){
+    self.load(function(err){
+      if(err != null){
+        callback(err);
+      }else{
+        var keys = [];
+        var counterKey = self.key + self.keySeperator() + self.counterPrefix();
+        self.metadata.childKey.forEach(function(childKey){
+          if(childKey != counterKey){
+            keys.push(childKey);
+          }
+          // keys.sort();
+          callback(null, keys);
+        });
+      }
+    });
+  };
+
+  api.couchbase.hash.length = function(callback){
+    var self = this;
+    self.keys(function(err, keys){
+      var length;
+      if(keys != null){ length = keys.length; }
+      callback(err, length);
+    });
+  }
+
+  api.couchbase.hash.get = function(key, callback){
+    var self = this;
+    self.childExists(key, function(err, exists){
+      if(err != null){
+        callback(err);
+      }else if(exists === false){
+        callback(new Error("key does not exist"))
+      }else{
+        self.getChild(function(err, data){
+          callback(err, data, key);
+        });
+      }
+    });
+  }
+
+  api.couchbase.hash.set = function(key, data, callback){
+    var self = this;
+    self.addChild(key, data, function(err){
+      callback(err);
+    }, true);
+  }
+
+  api.couchbase.hash.getAll = function(callback){
+    var self = this;
+    self.keys(function(err, keys){
+      if(err != null){
+        callback(err);
+      }else{
+        var count = 0;
+        var data = {};
+        keys.forEach(function(key){
+          count++;
+          data[key] = null;
+          self.get(key, function(err, doc, key){
+            if(key != null){
+              data[key] = doc;
+            }
+            count--;
+            if(count === 0){
+              callback(null, data);
+            }
+          });
+        });
+      }
+    });
   }
 
   next();
