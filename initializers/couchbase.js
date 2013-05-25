@@ -261,40 +261,40 @@ Assuming a key called "key":
   // Array //
   ///////////
 
-  // array:{
-  //   this = new api.couchbase.object();
-  //   create: function(key, callback){
-  //     cb.get(key, function(err, doc, meta){
-  //       if(err != null){
-  //         callback(err);
-  //       }else if(doc != null){
-  //         callback(new Error(key + " exists"));
-  //       }else{
+  /*
+  Assuming an array called "key":
 
-  //       }
-  //     });
-  //   },
-  //   delete: function(key, callback){
+  - key (the main document, holds metadata & timestamps)
+  - key:_counter (counter for this document; used as the array index and length)
+  - key:0 element at position 0
+  - key:n element at position n
+  */
 
-  //   },
-  //   length: function(key, callback){
+  api.couchbase.array.prototype = new api.couchbase.structure;
 
-  //   },
-  //   get: function(key, callback){
+  api.couchbase.array.length = function(callback){
 
-  //   },
-  //   set: function(key, value, callback){
+  }
 
-  //   },
-  //   push: function(key, value, callback){
+  api.couchbase.array.get = function(index, callback){
+    
+  }
 
-  //   },
-  //   pop: function(key, callback){
+  api.couchbase.array.set = function(index, data, callback){
+    
+  }
 
-  //   },
-  // }
+  api.couchbase.array.pop = function(){
+    
+  }
 
-  // api.couchbase.array.prototype = new api.couchbase.structure;
+  api.couchbase.array.push = function(data, callback){
+    
+  }
+
+  api.couchbase.array.compact = function(callback){
+    
+  }
 
   next();
 }

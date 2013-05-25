@@ -15,7 +15,7 @@ env:
 services:
   - redis-server
 before_script:
-  - if [[ "$STU" == "couchbase" ]]; then ./ci/scripts/setup_couchbase.sh; else ./ci/scripts/setup_memcached.sh; fi
+  - if [[ "$STU" == "couchbase" ]]; then ./ci/scripts/setup_couchbase.sh; fi
 after_failure: 
   - "cat /home/travis/builds/evantahler/actionHero/npm-debug.log"
   
