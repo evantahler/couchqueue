@@ -15,6 +15,8 @@ services:
 env:
   - SUT=couchbase CB_URL="http://packages.couchbase.com/releases/2.0.1/couchbase-server-enterprise_x86_64_2.0.1.deb" CB_DEB="couchbase-server-enterprise_x86_64_2.0.1.deb" CB_VER="2.0.1" CB_CONFIG_CMD="/opt/couchbase/bin/cbepctl localhost:11210 set flush_param flushall_enabled true"
   - SUT=memcached
+services:
+  - memcached
 before_script:
   - if [[ "$STU" == "couchbase" ]]; then ./ci/scripts/setup_couchbase.sh; else ./ci/scripts/setup_memcached.sh; fi
 after_failure: 
