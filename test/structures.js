@@ -30,6 +30,9 @@ var cleanup = function(callback){
     "test3:_counter", 
     "test:childish",
     "test:_readCounter",
+    "test:item-0",
+    "test:item-1",
+    "test:item-2",
     "test:0",
     "test:1",
     "test:2",
@@ -497,6 +500,118 @@ describe('couchbase', function(){
       obj.metadata.updatedAt.should.be.within(t, t + 3);
       obj.metadata.childKeys[0].should.equal("_counter");
       done();
+    });
+
+    it("starts with an initial length of 0", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.create(function(err){
+        obj.length(function(err, length){
+          length.should.equal(0);
+          done();
+        });
+      });
+    });
+
+    it("adding an element will increase lenght", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.load(function(){
+        obj.length(function(err, length){
+          length.should.equal(0);
+          obj.set("item-0", {body: 'item 0'}, function(err){
+            should.not.exists(err);
+            obj.length(function(err, length){
+              length.should.equal(1);
+              done();
+            });
+          });
+        });
+      });
+    });
+
+    it("can get it's hash keys", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.keys(function(err, keys){
+        should.not.exists(err);
+        keys.length.should.equal(1);
+        keys[0].should.equal("item-0");
+        done();
+      });
+    });
+
+    it("can read a set value", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.get("item-0", function(err, data){
+        should.not.exists(err);
+        data.body.should.equal('item 0');
+        done();
+      });
+    });
+
+    it("will return null on an empty key", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.get("xxxxxx", function(err, data){
+        should.not.exists(err);
+        should.not.exists(data);
+        done();
+      });
+    })
+
+    it("will allow for resetting (overwritting)", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.load(function(){
+        obj.set("item-0", {body: 'something else'}, function(err){
+          should.not.exists(err);
+          obj.get("item-0", function(err, data){
+            should.not.exists(err);
+            data.body.should.equal('something else');
+            done();
+          });
+        });
+      });
+    });
+
+    it("removing should reduce the length", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.unset("item-0", function(){
+        obj.length(function(err, length){
+          should.not.exists(err);
+          length.should.equal(0);
+          done();
+        });
+      });
+    });
+
+    it("can get all keys and values", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.set("item-0", {body: 'item 0'});
+      obj.set("item-1", {body: 'item 1'});
+      obj.set("item-2", {body: 'item 2'});
+      setTimeout(function(){
+        obj.getAll(function(err, data){
+          should.not.exists(err);
+          data['item-0'].body.should.equal("item 0")
+          data['item-1'].body.should.equal("item 1")
+          data['item-2'].body.should.equal("item 2")
+          done();
+        });
+      }, 300);
+    });
+
+    it("can be delted and will remove all children", function(done){
+      var obj = new api.couchbase.hash("test");
+      obj.destroy(function(err){
+        should.not.exists(err);
+        api.couchbase.bucket.get("test:item-0", function(err, data){
+          should.not.exists(data);
+          api.couchbase.bucket.get("test:item-1", function(err, data){
+            should.not.exists(data);
+            api.couchbase.bucket.get("test:item-2", function(err, data){
+              should.not.exists(data);
+              done();
+            });
+          });
+        });
+      });
     });
 
   });

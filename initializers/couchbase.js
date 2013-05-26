@@ -527,19 +527,19 @@ Assuming a key called "key":
   util.inherits(api.couchbase.hash, api.couchbase.structure);
 
   api.couchbase.hash.prototype.keys = function(callback){
+    var self = this;
     self.load(function(err){
       if(err != null){
         callback(err);
       }else{
         var keys = [];
-        var counterKey = self.key + self.keySeperator() + self.counterPrefix();
-        self.metadata.childKey.forEach(function(childKey){
-          if(childKey != counterKey){
+        self.metadata.childKeys.forEach(function(childKey){
+          if(childKey !== self.counterPrefix()){
             keys.push(childKey);
           }
-          // keys.sort();
-          callback(null, keys);
         });
+        // keys.sort();
+        callback(null, keys);
       }
     });
   };
@@ -559,9 +559,9 @@ Assuming a key called "key":
       if(err != null){
         callback(err);
       }else if(exists === false){
-        callback(new Error("key does not exist"))
+        callback(null, null);
       }else{
-        self.getChild(function(err, data){
+        self.getChild(key, function(err, data){
           callback(err, data, key);
         });
       }
@@ -570,9 +570,30 @@ Assuming a key called "key":
 
   api.couchbase.hash.prototype.set = function(key, data, callback){
     var self = this;
-    self.addChild(key, data, function(err){
-      if(typeof callback === "function"){ callback(err); }
-    }, true);
+    self.childExists(key, function(err, exists){
+      if(err != null){
+        callback(err);
+      }else if(exists === false){
+        self.addChild(key, data, function(err){
+          self.incr(1, function(err){
+            if(typeof callback === "function"){ callback(err); }
+          });
+        }, true);
+      }else{
+        self.addChild(key, data, function(err){
+          if(typeof callback === "function"){ callback(err); }
+        }, true);
+      }
+    });
+  }
+
+  api.couchbase.hash.prototype.unset = function(key, callback){
+    var self = this;
+    self.removeChild(key, function(err){
+      self.incr(-1, function(err){
+        if(typeof callback === "function"){ callback(err); }
+      });
+    });
   }
 
   api.couchbase.hash.prototype.getAll = function(callback){
