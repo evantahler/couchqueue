@@ -56,24 +56,24 @@ Assuming a key called "key":
     var self = this;
     self.exists(function(err, existing){
       if(err){
-        callback(err);
+        if(typeof callback === "function"){ callback(err); }
       }else if(existing === true){
-        callback(new Error("document already exists"));
+         if(typeof callback === "function"){ callback(new Error("document already exists")); }
       }else{
         self.save(function(err){
           if(err){
-            callback(err);
+            if(typeof callback === "function"){ callback(err); }
           }else{
             self.bucket.set(self.key + self.keySeperator() + self.counterPrefix(), 0, function(err){
               if(err){
-                callback(err);
+                if(typeof callback === "function"){ callback(err); }
               }else{
                 if(typeof self._configure == "function"){
-                  self.configure(function(err){
-                    callback(err);
+                  self._configure(function(err){
+                    if(typeof callback === "function"){ callback(err); }
                   });
                 }else{
-                  callback(null);
+                  if(typeof callback === "function"){ callback(null); }
                 }
               }
             });
@@ -87,9 +87,9 @@ Assuming a key called "key":
     var self = this;
     self.bucket.set(self.key, self.metadata, function(err, meta){
       if(err != null){
-        callback(err);
+        if(typeof callback === "function"){ callback(err); }
       }else{
-        callback(null);
+        if(typeof callback === "function"){ callback(null); }
       }
     });
   }
@@ -138,6 +138,7 @@ Assuming a key called "key":
 
   api.couchbase.structure.prototype.incr = function(offset, callback){
     var self = this;
+    if(typeof offset == "function"){ callback = offset; offset = null; }
     if(offset == null){ offset = 1; }
     var counterKey = self.key + self.keySeperator() + self.counterPrefix();
     self.bucket.incr(counterKey, {offset: parseInt(offset)}, function(err, value, meta){
@@ -145,7 +146,7 @@ Assuming a key called "key":
         callback(err, null);
       }else{
         self.touch(function(){
-          callback(null, parseInt(value));
+          if(typeof callback === "function"){ callback(null, parseInt(value)); }
         });
       }
     });
@@ -158,10 +159,10 @@ Assuming a key called "key":
     self.bucket.set(counterKey, value, function(err, meta){
       self.bucket.get(counterKey, function(err, value, meta){
         if(err != null){
-          callback(err, null);
+          if(typeof callback === "function"){ callback(err, null); }
         }else{
           self.touch(function(){
-            callback(null, parseInt(value));
+            if(typeof callback === "function"){ callback(null, parseInt(value)); }
           });
         }
       });
@@ -189,17 +190,17 @@ Assuming a key called "key":
     var childKey = self.key + self.keySeperator() + suffix;
     self.childExists(suffix, function(err, exists){
       if(err != null){
-        callback(err);
+        if(typeof callback === "function"){ callback(err); }
       }else if(exists === true && overwrite !== true){
-        callback(new Error("child already exists"));
+        if(typeof callback === "function"){ callback(new Error("child already exists")); }
       }else{
         self.bucket.set(childKey, data, function(err){
           if(err != null){
-            callback(err)
+            if(typeof callback === "function"){ callback(err); }
           }else{
             self.metadata.childKeys.push(suffix);
             self.touch(function(err){
-              callback(err);
+              if(typeof callback === "function"){ callback(err); }
             });
           }
         });
@@ -339,19 +340,19 @@ Assuming a key called "key":
       if(err != null){
         callback(err);
       }else{
-        self.addChild(index, data, function(err, doc){
+        self.addChild(index, data, function(err){
           if(err != null){
             callback(err);
           }else{
             if(index >= length){
               self.forceCounter(index + 1, function(err){
                 self.touch(function(err){
-                  callback(err, doc);
+                  if(typeof callback === "function"){ callback(err); }
                 });
               });
             }else{
               self.touch(function(err){
-                callback(err, doc);
+                if(typeof callback === "function"){ callback(err); }
               });
             }
           }
@@ -415,13 +416,19 @@ Assuming a key called "key":
 
   api.couchbase.queue.prototype.length = function(callback){
     var self = this;
-    self.getCount(function(err, count){
+    self.load(function(err){
       if(err != null){
-        callback(err)
+        callback(err);
       }else{
-        self.getChild("_readCounter", function(err, readCount){
-          var length = count - readCount;
-          callback(err, length);
+        self.getCount(function(err, count){
+          if(err != null){
+            callback(err)
+          }else{
+            self.getChild("_readCounter", function(err, readCount){
+              var length = count - readCount;
+              callback(err, length);
+            });
+          }
         });
       }
     });
@@ -435,7 +442,9 @@ Assuming a key called "key":
         callback(err);
       }else{
         self.getChild(readCount, function(err, data){
-          if(err != null){
+          if(err != null && String(err) === "Error: child does not exist" ){
+            callback(null, null); // none left to pop
+          }else if(err != null){
             callback(err);
           }else{
             self.removeChild(readCount, function(err){
@@ -453,8 +462,8 @@ Assuming a key called "key":
       if(err != null){
         callback(err);
       }else{
-        self.addChild("count", data, function(err){
-          callback(err);
+        self.addChild(count, data, function(err){
+          if(typeof callback === "function"){ callback(err); }
         });
       }
     });
@@ -462,30 +471,37 @@ Assuming a key called "key":
 
   api.couchbase.queue.prototype.getAll = function(callback){
     var self = this;
-    self.getCount(function(err, count){
-      if(err != null){
-        callback(err)
+    self.load(function(err){
+      if(err){
+        callback(err);
       }else{
-        self.getChild("_readCounter", function(err, readCount){
+        self.getCount(function(err, count){
           if(err != null){
             callback(err)
           }else{
-            var length = count - readCount;
-            var i = count;
-            var completed = 0;
-            var data = [];
-            while(i <= readCount){
-              (function(i){
-                self.getChild(i, function(err, doc){
-                  data[i] = doc;
-                  completed++;
-                  if(completed == length){
-                    callback(err, data);
-                  }
-                });
-              })(i)
-              i++;
-            }
+            self.getChild("_readCounter", function(err, readCount){
+              if(err != null){
+                callback(err)
+              }else{
+                var readCount = parseInt(readCount);
+                var length = count - readCount;
+                var i = readCount + 1;
+                var completed = 0;
+                var data = [];
+                while(i <= count){
+                  (function(i){
+                    self.getChild(i, function(err, doc){
+                      data[i - readCount - 1] = doc;
+                      completed++;
+                      if(completed === length){
+                        callback(err, data);
+                      }
+                    });
+                  })(i)
+                  i++;
+                }
+              }
+            });
           }
         });
       }
@@ -555,7 +571,7 @@ Assuming a key called "key":
   api.couchbase.hash.prototype.set = function(key, data, callback){
     var self = this;
     self.addChild(key, data, function(err){
-      callback(err);
+      if(typeof callback === "function"){ callback(err); }
     }, true);
   }
 

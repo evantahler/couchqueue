@@ -29,9 +29,12 @@ var cleanup = function(callback){
     "test2:_counter", 
     "test3:_counter", 
     "test:childish",
+    "test:_readCounter",
     "test:0",
     "test:1",
     "test:2",
+    "test:3",
+    "test:4",
   ].forEach(function(key){
     count++;
     api.couchbase.bucket.remove(key, function(){
@@ -328,6 +331,172 @@ describe('couchbase', function(){
           });
         });
       });
+    });
+
+  });
+
+  describe("Queue", function(){
+
+    before(function(done){
+      cleanup(done);
+    });
+
+    it("can createa a list", function(done){
+      var t = new Date().getTime();
+      var obj = new api.couchbase.queue("test");
+      obj.type.should.equal("queue");
+      obj.key.should.equal("test");
+      obj.metadata.createdAt.should.be.within(t, t + 3);
+      obj.metadata.updatedAt.should.be.within(t, t + 3);
+      obj.metadata.childKeys[0].should.equal("_counter");
+      done();
+    });
+
+    it("will have the readCounter generated on save", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.create(function(err){
+        should.not.exists(err);
+        obj.metadata.childKeys.length.should.equal(2);
+        obj.metadata.childKeys[0].should.equal("_counter");
+        obj.metadata.childKeys[1].should.equal("_readCounter");
+        obj.getChild("_readCounter", function(err, data){
+          should.not.exists(err);
+          parseInt(data).should.equal(0);
+          done();
+        });
+      });
+    });
+
+    it("starts with an initial length of 0", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.create(function(err){
+        obj.length(function(err, length){
+          length.should.equal(0);
+          done();
+        });
+      });
+    });
+
+    it("pushing an element will increase lenght", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.load(function(){
+        obj.length(function(err, length){
+          length.should.equal(0);
+          obj.push({body: 'item 0'}, function(err){
+            should.not.exists(err);
+            obj.length(function(err, length){
+              length.should.equal(1);
+              done();
+            });
+          });
+        });
+      });
+    });
+
+    it("popping will return the value", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.load(function(){
+        obj.pop(function(err, data){
+          should.not.exists(err);
+          data.body.should.equal('item 0');
+          done();
+        });
+      });
+    });
+
+    it("popping should have reduced the length", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.length(function(err, length){
+        should.not.exists(err);
+        length.should.equal(0);
+        done();
+      });
+    });
+
+    it("can uniquly push many elements", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.push({body: 'item 0'});
+      obj.push({body: 'item 1'});
+      obj.push({body: 'item 2'});
+      setTimeout(function(){
+        obj.length(function(err, length){
+          should.not.exists(err);
+          length.should.equal(3);
+          done();
+        });
+      }, 300);
+    });
+
+    it("can get all it's children", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.getAll(function(err, data){
+        should.not.exists(err);
+        data.length.should.equal(3);
+        data[0].body.should.equal('item 0')
+        data[1].body.should.equal('item 1')
+        data[2].body.should.equal('item 2')
+        done();
+      });
+    });
+
+    it("can ensure that poping is a unique operation", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.pop(function(err, data){
+        should.not.exists(err);
+        data.body.should.equal("item 0");
+        obj.pop(function(err, data){
+          should.not.exists(err);
+          data.body.should.equal("item 1");
+          obj.pop(function(err, data){
+            should.not.exists(err);
+            data.body.should.equal("item 2");
+            obj.pop(function(err, data){
+              should.not.exists(err);
+              should.not.exists(data);
+              done();
+            });
+          });
+        });
+      });
+    });
+
+    it("can be delted and will remove all children", function(done){
+      var obj = new api.couchbase.queue("test");
+      obj.push({body: 'item n'}, function(err){
+        should.not.exists(err);
+        obj.destroy(function(err){
+          should.not.exists(err);
+          api.couchbase.bucket.get("test:3", function(err, data){
+            should.not.exists(data);
+            api.couchbase.bucket.get("test:4", function(err, data){
+              should.not.exists(data);
+              api.couchbase.bucket.get("test:5", function(err, data){
+                should.not.exists(data);
+                done();
+              });
+            });
+          });
+        });
+      });
+    });
+
+  });
+
+  describe("Hash", function(){
+
+    before(function(done){
+      cleanup(done);
+    });
+
+    it("can createa a list", function(done){
+      var t = new Date().getTime();
+      var obj = new api.couchbase.hash("test");
+      obj.type.should.equal("hash");
+      obj.key.should.equal("test");
+      obj.metadata.createdAt.should.be.within(t, t + 3);
+      obj.metadata.updatedAt.should.be.within(t, t + 3);
+      obj.metadata.childKeys[0].should.equal("_counter");
+      done();
     });
 
   });
