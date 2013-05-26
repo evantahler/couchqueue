@@ -18,6 +18,29 @@ var configChanges = {
   }
 }
 
+var cleanup = function(callback){
+  var count = 0;
+  [
+    "foo", 
+    "test", 
+    "test2", 
+    "test3", 
+    "test:_counter", 
+    "test2:_counter", 
+    "test3:_counter", 
+    "test:childish",
+    "test:0",
+    "test:1",
+    "test:2",
+  ].forEach(function(key){
+    count++;
+    api.couchbase.bucket.remove(key, function(){
+      count--;
+      if(count === 0){ callback(); }
+    });
+  });
+}
+
 describe('couchbase', function(){  
   
   before(function(done){
@@ -41,15 +64,8 @@ describe('couchbase', function(){
     });
 
     after(function(done){
-      var count = 0;
-      ["foo", "test", "test2", "test3", "test:_counter", "test2:_counter", "test3:_counter", "test:childish"].forEach(function(key){
-        count++;
-        api.couchbase.bucket.remove(key, function(){
-          count--;
-          if(count === 0){ done(); }
-        });
-      });
-    })
+      cleanup(done);
+    });
 
   });
 
@@ -62,7 +78,7 @@ describe('couchbase', function(){
       obj.key.should.equal("test");
       obj.metadata.createdAt.should.be.within(t, t + 3);
       obj.metadata.updatedAt.should.be.within(t, t + 3);
-      obj.metadata.childKeys[0].should.equal("test:_counter");
+      obj.metadata.childKeys[0].should.equal("_counter");
       done();
     });
 
@@ -107,7 +123,7 @@ describe('couchbase', function(){
           metadata.type.should.equal("structure");
           metadata.createdAt.should.be.within(t, t + 3);
           metadata.updatedAt.should.be.within(t, t + 3);
-          metadata.childKeys[0].should.equal("test2:_counter");
+          metadata.childKeys[0].should.equal("_counter");
           done();
         })
       });
@@ -196,6 +212,117 @@ describe('couchbase', function(){
             should.not.exists(doc);
             api.couchbase.bucket.get("test3:_counter", function(err, doc){
               should.not.exists(doc);
+              done();
+            });
+          });
+        });
+      });
+    });
+
+  });
+
+  describe("Array", function(){
+
+    before(function(done){
+      cleanup(done);
+    });
+
+    it("can createa an array", function(done){
+      var t = new Date().getTime();
+      var obj = new api.couchbase.array("test");
+      obj.type.should.equal("array");
+      obj.key.should.equal("test");
+      obj.metadata.createdAt.should.be.within(t, t + 3);
+      obj.metadata.updatedAt.should.be.within(t, t + 3);
+      obj.metadata.childKeys[0].should.equal("_counter");
+      done();
+    });
+
+    it("starts with an initial length of 0", function(done){
+      var obj = new api.couchbase.array("test");
+      obj.create(function(err){
+        obj.length(function(err, length){
+          length.should.equal(0);
+          done();
+        });
+      });
+    });
+
+    it("setting an element will increase lenght", function(done){
+      var obj = new api.couchbase.array("test");
+      obj.load(function(){
+        obj.length(function(err, length){
+          length.should.equal(0);
+          obj.set(0, {body: 'item 0'}, function(err){
+            should.not.exists(err);
+            obj.length(function(err, length){
+              length.should.equal(1);
+              done();
+            });
+          });
+        });
+      });
+    });
+
+    it("can retrieve a set value", function(done){
+      var obj = new api.couchbase.array("test");
+      obj.load(function(){
+        obj.get(0, function(err, data){
+          should.not.exists(err);
+          data.body.should.equal('item 0');
+          done();
+        });
+      });
+    });
+
+    it("will error when asking for a value which hasn't beeen set", function(done){
+      var obj = new api.couchbase.array("test");
+      obj.load(function(){
+        obj.get(2, function(err, data){
+          should.not.exists(data);
+          String(err).should.equal("Error: index out of bounds");
+          done();
+        });
+      });
+    });
+
+    it("can set another value, skipping an index", function(done){
+      var obj = new api.couchbase.array("test");
+      obj.load(function(){
+        obj.set(2, {body: 'item 2'}, function(err){
+          should.not.exists(err);
+          obj.length(function(err, length){
+            length.should.equal(3);
+            done();
+          });
+        });
+      });
+    });
+
+    it("can get all saved values", function(done){
+      var obj = new api.couchbase.array("test");
+      obj.load(function(){
+        obj.getAll(function(err, data){
+          should.not.exists(err);
+          data.length.should.equal(3);
+          data[0].body.should.equal("item 0");
+          should.not.exist(data[1]);
+          data[2].body.should.equal("item 2");
+          done();
+        });
+      });
+    });
+
+    it("can be delted and will remove all children", function(done){
+      var obj = new api.couchbase.array("test");
+      obj.destroy(function(err){
+        should.not.exists(err);
+        api.couchbase.bucket.get("test:0", function(err, data){
+          should.not.exists(data);
+          api.couchbase.bucket.get("test:1", function(err, data){
+            should.not.exists(data);
+            api.couchbase.bucket.get("test:2", function(err, data){
+              should.not.exists(data);
               done();
             });
           });

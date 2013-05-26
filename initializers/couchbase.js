@@ -1,4 +1,5 @@
-var couchbase = require("couchbase")
+var couchbase = require("couchbase");
+var util = require("util");
 
 exports.couchbase = function(api, next){
   api.couchbase = {
@@ -32,13 +33,14 @@ Assuming a key called "key":
 - key:_counter (counter for this document)
 */
 
-  api.couchbase.structure = function(key, bucket){
+  api.couchbase.structure = function(key, bucket, type){
     var self = this;
     if(key == null){ throw new Error("key is required"); }
     self.key = key;
-    if(bucket == null){ bucket = api.couchbase.bucket; } // ovveride
+    if(bucket == null){ bucket = api.couchbase.bucket; } // overide
     self.bucket = bucket;  // couchbase bucket object
-    self.type = "structure"
+    if(type == null){ type = "structure" }
+    self.type = type;
     self.metadata = self.generateDefaultState();
   }
 
@@ -99,7 +101,7 @@ Assuming a key called "key":
       updatedAt: new Date().getTime(),
       type: this.type,
       childKeys: [
-        self.key + self.keySeperator() + self.counterPrefix(),
+        self.counterPrefix(),
       ],
     }
   };
@@ -181,6 +183,7 @@ Assuming a key called "key":
 
   api.couchbase.structure.prototype.addChild = function(suffix, data, callback, overwrite){
     var self = this;
+    suffix = String(suffix);
     if(typeof data === 'function'){ callback = data; data = null; }
     if(data == null){ data = {}; }
     var childKey = self.key + self.keySeperator() + suffix;
@@ -263,24 +266,29 @@ Assuming a key called "key":
 
   api.couchbase.structure.prototype.destroy = function(callback){
     var self = this;
-    var count = 0;
-    if(self.metadata.childKeys.length === 0){
-      self.bucket.remove(self.key, function(err){
+    self.load(function(err){
+      if(err != null){
         callback(err);
-      });
-    }else{
-      self.metadata.childKeys.forEach(function(child){
-        count++;
-        self.bucket.remove(child, function(){
-          count--;
-          if(count === 0){
-            self.bucket.remove(self.key, function(err){
-              callback(err);
-            });
-          }
+      }else if(self.metadata.childKeys.length === 0){
+        self.bucket.remove(self.key, function(err){
+          callback(err);
         });
-      });
-    }
+      }else{
+        var count = 0;
+        self.metadata.childKeys.forEach(function(suffix){
+          count++;
+          var childKey = self.key + self.keySeperator() + suffix;
+          self.bucket.remove(childKey, function(err){
+            count--;
+            if(count === 0){
+              self.bucket.remove(self.key, function(err){
+                callback(err);
+              });
+            }
+          });
+        });
+      }
+    });
   }
 
   ///////////
@@ -297,17 +305,18 @@ Assuming a key called "key":
   */
 
   api.couchbase.array = function(key, bucket){
-      api.couchbase.structure.call(this, key, bucket);
+      api.couchbase.structure.call(this, key, bucket, "array");
   }
+  util.inherits(api.couchbase.array, api.couchbase.structure);
 
-  api.couchbase.array.length = function(callback){
+  api.couchbase.array.prototype.length = function(callback){
     var self = this;
     self.getCount(function(err, count){
       callback(err, count);
     });
   }
 
-  api.couchbase.array.get = function(index, callback){
+  api.couchbase.array.prototype.get = function(index, callback){
     var self = this;
     index = Math.abs(parseInt(index));
     self.length(function(err, length){
@@ -323,19 +332,19 @@ Assuming a key called "key":
     });
   }
 
-  api.couchbase.array.set = function(index, data, callback){
+  api.couchbase.array.prototype.set = function(index, data, callback){
     var self = this;
     index = Math.abs(parseInt(index));
     self.length(function(err, length){
       if(err != null){
         callback(err);
       }else{
-        self.addChild(index, function(err, doc){
+        self.addChild(index, data, function(err, doc){
           if(err != null){
             callback(err);
           }else{
-            if(index > length){
-              self.forceCounter(index, function(err){
+            if(index >= length){
+              self.forceCounter(index + 1, function(err){
                 self.touch(function(err){
                   callback(err, doc);
                 });
@@ -351,7 +360,7 @@ Assuming a key called "key":
     });
   }
 
-  api.couchbase.array.getAll = function(callback){
+  api.couchbase.array.prototype.getAll = function(callback){
     var self = this;
     self.length(function(err, length){
       if(err != null){
@@ -362,12 +371,12 @@ Assuming a key called "key":
         var i = 0;
         var response = [];
         var found = 0;
-        while(i <= length){
+        while(i < length){
           (function(i){
             self.get(i, function(err, data){
               found++;
               response[i] = data;
-              if(found == length){
+              if(found === length){
                 callback(null, response);
               }
             });
@@ -379,7 +388,7 @@ Assuming a key called "key":
   }
 
   ///////////
-  // List //
+  // QUEUE //
   ///////////
 
   /*
@@ -393,17 +402,18 @@ Assuming a key called "key":
   */
 
   api.couchbase.queue = function(key, bucket){
-      api.couchbase.structure.call(this, key, bucket);
+      api.couchbase.structure.call(this, key, bucket, "queue");
   }
+  util.inherits(api.couchbase.queue, api.couchbase.structure);
 
-  api.couchbase.queue._configure = function(callback){
+  api.couchbase.queue.prototype._configure = function(callback){
     var self = this;
     self.addChild("_readCounter", 0, function(err){
       callback(err);
     });
   }
 
-  api.couchbase.queue.length = function(callback){
+  api.couchbase.queue.prototype.length = function(callback){
     var self = this;
     self.getCount(function(err, count){
       if(err != null){
@@ -417,7 +427,7 @@ Assuming a key called "key":
     });
   }
 
-  api.couchbase.queue.pop = function(callback){
+  api.couchbase.queue.prototype.pop = function(callback){
     var self = this;
     var readCounterKey = self.key + self.keySeperator() + "_readCounter";
     self.bucket.incr(readCounterKey, function(err, readCount){
@@ -437,7 +447,7 @@ Assuming a key called "key":
     });
   }
 
-  api.couchbase.queue.push = function(data, callback){
+  api.couchbase.queue.prototype.push = function(data, callback){
     var self = this;
     self.incr(function(err, count){
       if(err != null){
@@ -450,7 +460,7 @@ Assuming a key called "key":
     });
   }
 
-  api.couchbase.queue.getAll = function(callback){
+  api.couchbase.queue.prototype.getAll = function(callback){
     var self = this;
     self.getCount(function(err, count){
       if(err != null){
@@ -496,10 +506,11 @@ Assuming a key called "key":
   */
 
   api.couchbase.hash = function(key, bucket){
-      api.couchbase.structure.call(this, key, bucket);
+      api.couchbase.structure.call(this, key, bucket, "hash");
   }
+  util.inherits(api.couchbase.hash, api.couchbase.structure);
 
-  api.couchbase.hash.keys = function(callback){
+  api.couchbase.hash.prototype.keys = function(callback){
     self.load(function(err){
       if(err != null){
         callback(err);
@@ -517,7 +528,7 @@ Assuming a key called "key":
     });
   };
 
-  api.couchbase.hash.length = function(callback){
+  api.couchbase.hash.prototype.length = function(callback){
     var self = this;
     self.keys(function(err, keys){
       var length;
@@ -526,7 +537,7 @@ Assuming a key called "key":
     });
   }
 
-  api.couchbase.hash.get = function(key, callback){
+  api.couchbase.hash.prototype.get = function(key, callback){
     var self = this;
     self.childExists(key, function(err, exists){
       if(err != null){
@@ -541,14 +552,14 @@ Assuming a key called "key":
     });
   }
 
-  api.couchbase.hash.set = function(key, data, callback){
+  api.couchbase.hash.prototype.set = function(key, data, callback){
     var self = this;
     self.addChild(key, data, function(err){
       callback(err);
     }, true);
   }
 
-  api.couchbase.hash.getAll = function(callback){
+  api.couchbase.hash.prototype.getAll = function(callback){
     var self = this;
     self.keys(function(err, keys){
       if(err != null){
