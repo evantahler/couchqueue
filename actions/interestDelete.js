@@ -1,6 +1,6 @@
 exports.action = {
-  name: "status",
-  description: "status",
+  name: "interestDelete",
+  description: "interestDelete",
   inputs: {
     required: [],
     optional: [],

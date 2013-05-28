@@ -1,6 +1,6 @@
 exports.action = {
-  name: "status",
-  description: "status",
+  name: "taskUpdate",
+  description: "taskUpdate",
   inputs: {
     required: [],
     optional: [],

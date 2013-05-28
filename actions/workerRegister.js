@@ -1,6 +1,6 @@
 exports.action = {
-  name: "status",
-  description: "status",
+  name: "workerRegister",
+  description: "workerRegister",
   inputs: {
     required: [],
     optional: [],

@@ -48,7 +48,7 @@ This call will return JSON which contains all the informtaion published above.  
 
 ### Completing a task / Denoting a task as `errored`
 
-- action: taskStatus
+- action: taskUpdate
 - route: post /task
 
 posting to `/tasks` will inform the sever if the task you are working on is done, and if you were able to sucesfully complete it or it failed.

@@ -1,6 +1,6 @@
 exports.action = {
-  name: "status",
-  description: "status",
+  name: "queueDelte",
+  description: "queueDelte",
   inputs: {
     required: [],
     optional: [],
