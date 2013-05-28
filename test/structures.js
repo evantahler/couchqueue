@@ -116,7 +116,7 @@ describe('couchbase', function(){
     it("will fail on create if another doc exists with the same name", function(done){
       var obj = new api.couchbase.structure("test");
       obj.create(function(err){
-        String(err).should.equal("Error: document already exists");
+        String(err).should.equal("Error: document already exists: test");
         done();
       });
     });
