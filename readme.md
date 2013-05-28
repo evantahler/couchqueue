@@ -35,6 +35,8 @@ Notes:
 - `data`: A JSON hash of any relivent information to publish.  It is best to publish IDs to be looked up later rather than all the information needed by the task
 - `runAt`: (optional) A unix timestamp (in seconds) when the task can be run.  A null value will be itnerprited as `now`
 - `scope`: (optional) either `any` or `all`.  Defaults to `any`.  Should each registed queue recieve only one copy of the task, or should all relevemnt workers preform the task?
+- `singularlyEnqueue`: (optional) should more than one of these events be allowed in the queue at a time?
+- `singularlyRun`: (optional) should more than one of these events be allowed to be run at a time?
 
 ### Getting Tasks & Starting work
 
