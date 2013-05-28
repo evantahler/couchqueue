@@ -177,7 +177,7 @@ Assuming a key called "key":
   api.couchbase.structure.prototype.exists = function(callback){
     var self = this;
     self.bucket.get(self.key, function(err, doc, meta){
-      if(err != null && String(err) != "Error: No such key: " + self.key){
+      if(err != null && String(err) != "Error: No such key"){
         callback(err, null);
       }else if(doc != null){
         callback(null, true);
@@ -203,7 +203,9 @@ Assuming a key called "key":
           if(err != null){
             if(typeof callback === "function"){ callback(err); }
           }else{
-            self.metadata.childKeys.push(suffix);
+            if(exists === false){
+              self.metadata.childKeys.push(suffix);
+            }
             self.touch(function(err){
               if(typeof callback === "function"){ callback(err); }
             });
@@ -260,7 +262,7 @@ Assuming a key called "key":
     var self = this;
     var childKey = self.key + self.keySeperator() + suffix;
     self.bucket.get(childKey, function(err, doc, meta){
-      if(err != null && String(err) != "Error: No such key: " + suffix){
+      if(err != null && String(err) != "Error: No such key"){
         callback(err, null);
       }else if(doc != null){
         callback(null, true);

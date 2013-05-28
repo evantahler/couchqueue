@@ -26,7 +26,7 @@ exports.couchqueue = function(api, next){
         api.log("waiting for couchbase to init...");
         setTimeout(function(){
           api.couchqueue._start(api, next);
-        }, 1000)
+        }, 100)
       }
     },
     

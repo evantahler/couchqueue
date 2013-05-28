@@ -8,7 +8,9 @@ exports.action = {
   blockedConnectionTypes: [],
   outputExample: {},
   run: function(api, connection, next){
-    // your logic here
-    next(connection, true);
+    api.couchqueue.interests.unset(connection.params.queue, function(err){
+      connection.error == err;
+      next(connection, true)
+    });
   }
 };
