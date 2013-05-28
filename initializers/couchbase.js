@@ -52,13 +52,18 @@ Assuming a key called "key":
     return ":";
   }
 
-  api.couchbase.structure.prototype.create = function(callback){
+  api.couchbase.structure.prototype.create = function(callback, ignoreDuplicateCreate){
+    if(ignoreDuplicateCreate == null){ ignoreDuplicateCreate = false; }
     var self = this;
     self.exists(function(err, existing){
       if(err){
         if(typeof callback === "function"){ callback(err); }
       }else if(existing === true){
-         if(typeof callback === "function"){ callback(new Error("document already exists")); }
+        if(ignoreDuplicateCreate === true){
+          if(typeof callback === "function"){ callback(null); }
+        }else{
+          if(typeof callback === "function"){ callback(new Error("document already exists: " + self.key)); }
+        }
       }else{
         self.save(function(err){
           if(err){
@@ -172,7 +177,7 @@ Assuming a key called "key":
   api.couchbase.structure.prototype.exists = function(callback){
     var self = this;
     self.bucket.get(self.key, function(err, doc, meta){
-      if(err != null && String(err) != "Error: No such key"){
+      if(err != null && String(err) != "Error: No such key: " + self.key){
         callback(err, null);
       }else if(doc != null){
         callback(null, true);
@@ -255,7 +260,7 @@ Assuming a key called "key":
     var self = this;
     var childKey = self.key + self.keySeperator() + suffix;
     self.bucket.get(childKey, function(err, doc, meta){
-      if(err != null && String(err) != "Error: No such key"){
+      if(err != null && String(err) != "Error: No such key: " + suffix){
         callback(err, null);
       }else if(doc != null){
         callback(null, true);
@@ -478,6 +483,8 @@ Assuming a key called "key":
         self.getCount(function(err, count){
           if(err != null){
             callback(err)
+          }else if(count === 0){
+            callback(null, []);
           }else{
             self.getChild("_readCounter", function(err, readCount){
               if(err != null){
@@ -604,19 +611,23 @@ Assuming a key called "key":
       }else{
         var count = 0;
         var data = {};
-        keys.forEach(function(key){
-          count++;
-          data[key] = null;
-          self.get(key, function(err, doc, key){
-            if(key != null){
-              data[key] = doc;
-            }
-            count--;
-            if(count === 0){
-              callback(null, data);
-            }
+        if(keys.length === 0){
+          callback(null, {});
+        }else{
+          keys.forEach(function(key){
+            count++;
+            data[key] = null;
+            self.get(key, function(err, doc, key){
+              if(key != null){
+                data[key] = doc;
+              }
+              count--;
+              if(count === 0){
+                callback(null, data);
+              }
+            });
           });
-        });
+        }
       }
     });
   }

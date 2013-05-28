@@ -85,7 +85,7 @@ configData.faye = {
 ///////////////
 
 configData.couchbase = {
-  "debug" : false,
+  "debug" : true,
   "hosts" : [ "localhost:8091" ],
   "password" : "password",
   "bucket" : "couchqueue",
