@@ -1,5 +1,7 @@
-exports.couchqueue = function(api, next){
+var CouchbaseStructures = require("couchbase-structures");
 
+exports.couchqueue = function(api, next){
+  
   api.couchqueue = {
     _start: function(api, next){
       if(api.couchbase.bucket != null){
@@ -10,7 +12,7 @@ exports.couchqueue = function(api, next){
           "interests"
         ].forEach(function(key){
           started++;
-          api.couchqueue[key] = new api.couchbase.hash(key);
+          api.couchqueue[key] = new CouchbaseStructures.hash(key, api.couchbase.bucket);
           api.couchqueue[key].create(function(err){
             if(err != null){
               api.log(err, "error");
