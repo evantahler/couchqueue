@@ -2,13 +2,15 @@ exports.action = {
   name: "queueDelete",
   description: "queueDelete",
   inputs: {
-    required: [],
+    required: ["queue"],
     optional: [],
   },
   blockedConnectionTypes: [],
   outputExample: {},
   run: function(api, connection, next){
-    // your logic here
-    next(connection, true);
+    api.couchqueue.deleteQueue(connection.params.queue, function(err){
+      connection.error = err;
+      next(connection, true);
+    });
   }
 };

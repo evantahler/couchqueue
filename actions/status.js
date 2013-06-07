@@ -1,3 +1,5 @@
+var CouchbaseStructures = require("couchbase-structures");
+
 exports.action = {
   name: "status",
   description: "status",

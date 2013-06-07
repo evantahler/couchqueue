@@ -90,7 +90,21 @@ exports.couchqueue = function(api, next){
     },
 
     deleteQueue: function(queue, next){
-
+      var couchName = api.couchqueue.couchName(queue);
+      console.log("HERE")
+      api.couchqueue.queues.unset(queue, function(err, data){
+        if(err != null){
+          next(err)
+        }else{
+          if(api.couchqueue.queueObjects[queue] == null){
+            api.couchqueue.queueObjects[queue] = new CouchbaseStructures.queue(couchName, api.couchbase.bucket);
+          }
+          api.couchqueue.queueObjects[queue].destroy(function(err){
+            delete api.couchqueue.queueObjects[queue];
+            next(err);
+          });
+        }
+      });
     }
   }
 
