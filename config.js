@@ -8,7 +8,7 @@ var configData = {};
 /////////////////////////
 
 configData.general = {
-  apiVersion: "6.0.0",
+  apiVersion: "0.0.1",
   serverName: "couchqueue",
   // id: "myActionHeroServer",                                    // id can be set here, or generated dynamically.  be sure that every server you run as a unique ID (which will happen when genrated dynamically)
   serverToken: "change-me",                                       // A unique token to your application which servers will use to authenticate to eachother
@@ -19,7 +19,7 @@ configData.general = {
   defaultChatRoom: "defaultRoom",                                 // the chatRoom that TCP and webSocket clients are joined to when the connect
   defaultLimit: 100,                                              // defaultLimit & defaultOffset are useful for limiting the length of response lists. 
   defaultOffset: 0,
-  workers : 0,                                                    // The number of internal "workers" (timers) this node will have.
+  workers : 1,                                                    // The number of internal "workers" (timers) this node will have.
   developmentMode: true,                                          // watch for changes in actions and tasks, and reload/restart them on the fly
   pidFileDirectory: process.cwd() + "/pids/",                     // the location of the directory to keep pidfiles
   simultaniousActions: 5                                          // how many pending actions can a single connection be working on 

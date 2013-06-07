@@ -20,7 +20,14 @@ exports.couchqueue = function(api, next){
             }else{
               started--;
               if(started == 0){
-                next();
+                api.couchqueue.loadQueues(function(err){
+                  if(err != null){
+                    api.log(err, "fatal");
+                    process.exit();
+                  }else{
+                    next();
+                  }
+                });
               }
             }
           }, true);
@@ -34,7 +41,19 @@ exports.couchqueue = function(api, next){
     },
     
     _teardown: function(api, next){
+      next();
+    },
 
+    registeredInterests: {},
+    
+    loadQueues: function(next){
+      api.couchqueue.interests.getAll(function(err, interests){
+        if(err == null){
+          api.couchqueue.registeredInterests = interests;
+          api.log(api.utils.hashLength(api.couchqueue.registeredInterests) + " interests loaded");
+        }
+        next(err);
+      });
     }
   }
 

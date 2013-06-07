@@ -2,8 +2,8 @@ exports.action = {
   name: "taskCreate",
   description: "taskCreate",
   inputs: {
-    required: [],
-    optional: [],
+    required: ["publisher", "data"],
+    optional: ["runAt", "scope", "singularlyEnqueue", "singularlyRun"],
   },
   blockedConnectionTypes: [],
   outputExample: {},

@@ -13,7 +13,7 @@
       "node": ">=0.6.0"
     },
     "dependencies": {
-      "actionHero": "6.0.2",
+      "actionHero": "6.0.3",
       "couchbase": "0.0.12",
       "couchbase-structures": "x"
     },
