@@ -37,6 +37,7 @@ Notes:
 - `scope`: (optional) either `any` or `all`.  Defaults to `any`.  Should each registed queue recieve only one copy of the task, or should all relevemnt workers preform the task?
 - `singularlyEnqueue`: (optional) should more than one of these events be allowed in the queue at a time?
 - `singularlyRun`: (optional) should more than one of these events be allowed to be run at a time?
+- `fastPost`: (optional) should posting to the queue return imidiatly (fast) or wait until the task is enqueued (slower, but will return errors)
 
 ### Getting Tasks & Starting work
 
@@ -61,17 +62,6 @@ posting to `/tasks` will inform the sever if the task you are working on is done
 - `state`:  Either `complete` or `fail`.
 - `failReason`: (optional) a note about why the task failed
 - `reEnqueue`; (optional) should we re-enqueue this task?  This can be used on both failed and complete tasks
-
-### Removing Tasks
-
-- action: taskDelete
-- route: DELETE /task
-
-This action will remove all the tasks for a specific queue or worker
-
-**params**
-- `workerId`: (optional).
-- `queue`: (optional).
 
 ### Registering a Worker
 

@@ -16,7 +16,6 @@ exports.routes = {
   ],
 
   delete: [
-    { path: "/task", action: "taskDelete" },
     { path: "/worker", action: "workerDelete" },
     { path: "/interest", action: "interetDelelete" },
     { path: "/queue", action: "queueDelete" },
