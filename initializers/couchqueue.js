@@ -3,6 +3,7 @@ var CouchbaseStructures = require("couchbase-structures");
 exports.couchqueue = function(api, next){
   
   api.couchqueue = {
+    
     _start: function(api, next){
       if(api.couchbase.bucket != null){
         var started = 0;
