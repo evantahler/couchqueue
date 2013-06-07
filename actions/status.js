@@ -38,9 +38,26 @@ exports.action = {
 
     if(connection.params.queues != null){
       started++;
+      connection.response.queues = {};
       api.couchqueue.queues.getAll(function(err, data){
-        connection.response.status.queues = data;
-        complete(err);
+        if(api.utils.hashLength(data) == 0){
+          complete(err);
+        }else{
+          started--;
+          for(var queue in data){
+            started++;
+            var couchName = data[queue];
+            (function(queue, couchName){
+              if(api.couchqueue.queueObjects[queue] == null){
+                api.couchqueue.queueObjects[queue] = new CouchbaseStructures.queue(couchName, api.couchbase.bucket);
+              }
+              api.couchqueue.queueObjects[queue].length(function(err, length){
+                connection.response.queues[queue] = length;
+                complete(err);
+              });
+            })(queue, couchName);
+          }
+        }        
       });
     }
 
