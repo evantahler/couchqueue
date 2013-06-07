@@ -20,7 +20,7 @@ exports.couchqueue = function(api, next){
             }else{
               started--;
               if(started == 0){
-                api.couchqueue.loadQueues(function(err){
+                api.couchqueue.loadInterests(function(err){
                   if(err != null){
                     api.log(err, "fatal");
                     process.exit();
@@ -45,8 +45,12 @@ exports.couchqueue = function(api, next){
     },
 
     registeredInterests: {},
-    
-    loadQueues: function(next){
+
+    queuePrefix: "queue",
+    queueDelimiter: "-",
+    queueObjects: {},
+
+    loadInterests: function(next){
       api.couchqueue.interests.getAll(function(err, interests){
         if(err == null){
           api.couchqueue.registeredInterests = interests;
@@ -54,6 +58,39 @@ exports.couchqueue = function(api, next){
         }
         next(err);
       });
+    },
+
+    couchName: function(queue){
+      return api.couchqueue.queuePrefix + api.couchqueue.queueDelimiter + queue;
+    },
+
+    createQueueIfNeeded: function(queue, next){
+      var couchName = api.couchqueue.couchName(queue);
+      api.couchqueue.queues.get(queue, function(err, data){
+        if(err != null){
+          next(err)
+        }else if(data != null){
+          if(api.couchqueue.queueObjects[queue] == null){
+            api.couchqueue.queueObjects[queue] = new CouchbaseStructures.queue(couchName, api.couchbase.bucket);
+          }
+          next();
+        }else{ 
+          api.couchqueue.queues.set(queue, couchName, function(err){
+            if(err != null){
+              next(err)
+            }else{
+              api.couchqueue.queueObjects[queue] = new CouchbaseStructures.queue(couchName, api.couchbase.bucket);
+              api.couchqueue.queueObjects[queue].create(function(err){
+                next(err);
+              });
+            }
+          });
+        }
+      });
+    },
+
+    deleteQueue: function(queue, next){
+
     }
   }
 

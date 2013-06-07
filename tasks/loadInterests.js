@@ -1,13 +1,13 @@
 exports.task = {
-  name: "loadSubscriptions",
-  description: "loadSubscriptions",
+  name: "loadInterests",
+  description: "loadInterests",
   scope: "any",
-  frequency: 10 * 1000,
+  frequency: 30 * 1000,
   toAnnounce: true,
   run: function(api, params, next){
     if(params == null){ prams = {}; }
     var error = null;
-    api.couchqueue.loadQueues(function(err){
+    api.couchqueue.loadInterests(function(err){
       next(err, true);
     });
   }

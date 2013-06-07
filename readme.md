@@ -122,7 +122,7 @@ Nominally, you should use `registerInterest` to update your interest map.  This 
 ### Removing a Queue
 
 - action: queueDelete
-- route: PUT /interest
+- route: DELETE /queue
 
 ### Inspecting the stated of the system
 

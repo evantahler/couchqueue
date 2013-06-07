@@ -2,7 +2,7 @@ exports.action = {
   name: "interestDelete",
   description: "interestDelete",
   inputs: {
-    required: [],
+    required: ["queue"],
     optional: [],
   },
   blockedConnectionTypes: [],

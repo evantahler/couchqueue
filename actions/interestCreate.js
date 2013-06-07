@@ -8,10 +8,16 @@ exports.action = {
   blockedConnectionTypes: [],
   outputExample: {},
   run: function(api, connection, next){
-    var interests = JSON.parse(connection.params.interests);
+    if(connection.params.interests === "*"){
+      var interests = "*";
+    }else{
+      var interests = JSON.parse(connection.params.interests);
+    }
     api.couchqueue.interests.set(connection.params.queue, interests, function(err){
       connection.error == err;
-      next(connection, true)
+      api.couchqueue.loadInterests(function(){
+        next(connection, true);
+      });
     });
   }
 };
