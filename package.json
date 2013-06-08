@@ -15,7 +15,8 @@
     "dependencies": {
       "actionHero": "6.0.3",
       "couchbase": "0.0.12",
-      "couchbase-structures": "x"
+      "couchbase-structures": "0.0.4",
+      "node-uuid": "x"
     },
     "devDependencies": {
       "mocha" : "1.10.x",

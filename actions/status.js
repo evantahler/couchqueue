@@ -9,6 +9,7 @@ exports.action = {
       "workers",
       "queues",
       "interests",
+      "tasksInProgress",
     ],
   },
   blockedConnectionTypes: [],
@@ -23,7 +24,7 @@ exports.action = {
       if(err != null){
         started = 0;
         connection.error = err;
-        nex(connection, true);
+        next(connection, true);
       }
       if(started === 0){
         next(connection, true);
@@ -40,7 +41,7 @@ exports.action = {
 
     if(connection.params.queues != null){
       started++;
-      connection.response.queues = {};
+      connection.response.status.queues = {};
       api.couchqueue.queues.getAll(function(err, data){
         if(api.utils.hashLength(data) == 0){
           complete(err);
@@ -54,7 +55,7 @@ exports.action = {
                 api.couchqueue.queueObjects[queue] = new CouchbaseStructures.queue(couchName, api.couchbase.bucket);
               }
               api.couchqueue.queueObjects[queue].length(function(err, length){
-                connection.response.queues[queue] = length;
+                connection.response.status.queues[queue] = length;
                 complete(err);
               });
             })(queue, couchName);
@@ -67,6 +68,14 @@ exports.action = {
       started++;
       api.couchqueue.interests.getAll(function(err, data){
         connection.response.status.interests = data;
+        complete(err);
+      });
+    }
+
+    if(connection.params.tasksInProgress != null){
+      started++;
+      api.couchqueue.tasksInProgress.getAll(function(err, data){
+        connection.response.status.tasksInProgress = data;
         complete(err);
       });
     }

@@ -1,3 +1,5 @@
+var uuid = require('node-uuid');
+
 exports.action = {
   name: "taskCreate",
   description: "taskCreate",
@@ -9,12 +11,14 @@ exports.action = {
   outputExample: {},
   run: function(api, connection, next){
     
+    var taskId            = uuid.v4();
+    var status            = "enqueued";
     var publisher         = connection.params.publisher;
     var data              = JSON.parse(connection.params.data);
-    var runAt             = connection.params.runAt;
-    var scope             = connection.params.scope;
-    var singularlyEnqueue = connection.params.singularlyEnqueue;
-    var singularlyRun     = connection.params.singularlyRun;
+    var runAt             = connection.params.runAt; // TODO
+    var scope             = connection.params.scope; // TODO
+    var singularlyEnqueue = connection.params.singularlyEnqueue; // TODO
+    var singularlyRun     = connection.params.singularlyRun; // TODO
 
     if(runAt == null){
       runAt = new Date().getTime() - 1;
@@ -33,10 +37,12 @@ exports.action = {
     }
 
     var task = {
+      taskId: taskId,
+      status: status,
       createdAt: new Date().getTime(),
       publisher: publisher,
       data: data,
-      publisher: runAt,
+      runAt: runAt,
       scope: scope,
       singularlyEnqueue: singularlyEnqueue,
       singularlyRun: singularlyRun,

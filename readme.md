@@ -59,7 +59,7 @@ posting to `/tasks` will inform the sever if the task you are working on is done
 **params**
 - `workerId`:  Given to the worker when registerd.
 - `taskId`:  Given to the worker when registerd.
-- `state`:  Either `complete` or `fail`.
+- `state`:  Either `success` or `fail`.
 - `failReason`: (optional) a note about why the task failed
 - `reEnqueue`; (optional) should we re-enqueue this task?  This can be used on both failed and complete tasks
 
@@ -71,7 +71,7 @@ posting to `/tasks` will inform the sever if the task you are working on is done
 This is run when a worker boots, and how a worker obtains its `workerId`
 
 **params**
-- `queues`: A JSON array of queues to work from, in priority order
+- `queues`: A comma-seperated list of queues to work from, in priority order (* is not allowed)
 
 ### Delteting a worker
 
@@ -84,9 +84,6 @@ This is how to 'gracefully' inform the server that a worker is shutting down.  O
 - `workerId`.  Given to the worker when registerd.
 
 Optionally, you can delete all workers for a queue with the below.  This will stop all workers from getting any more tasks, even if they requst one.
-
-**params**
-- `queue`
 
 ### Registring Interest
 

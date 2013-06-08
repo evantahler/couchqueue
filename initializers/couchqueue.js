@@ -10,7 +10,8 @@ exports.couchqueue = function(api, next){
         [
           "queues", 
           "workers", 
-          "interests"
+          "interests",
+          "tasksInProgress",
         ].forEach(function(key){
           started++;
           api.couchqueue[key] = new CouchbaseStructures.hash(key, api.couchbase.bucket);
@@ -49,6 +50,18 @@ exports.couchqueue = function(api, next){
     queuePrefix: "queue",
     queueDelimiter: "-",
     queueObjects: {},
+
+    workerPrefix: "worker",
+    workerDelimiter: "-",
+    workerObjects: {},
+
+    failedQueue: function(){
+      if(api.couchqueue.queueObjects["_failed"] == null){
+        var couchName = api.couchqueue.couchName("_failed");
+        api.couchqueue.queueObjects["_failed"] = new CouchbaseStructures.queue(couchName, api.couchbase.bucket);
+      }
+      return api.couchqueue.queueObjects["_failed"];
+    },
 
     loadInterests: function(next){
       api.couchqueue.interests.getAll(function(err, interests){

@@ -1,14 +1,27 @@
+var uuid = require('node-uuid');
+
 exports.action = {
   name: "workerRegister",
   description: "workerRegister",
   inputs: {
-    required: [],
+    required: ["queues"],
     optional: [],
   },
   blockedConnectionTypes: [],
   outputExample: {},
   run: function(api, connection, next){
-    // your logic here
-    next(connection, true);
+    var workerId = uuid.v4();
+    var raw_queues = connection.params.queues.split(",");
+    console.log(raw_queues)
+    var queues = [];
+    for(var q in raw_queues){
+      queues.push(raw_queues[q].replace(/\s+/g, ''));
+    }
+    api.couchqueue.workers.set(workerId, {workerId: workerId, queues: queues}, function(err){
+      connection.response.workerId = workerId;
+      connection.response.queues = queues;
+      connection.error = err;
+      next(connection, true);
+    });
   }
 };
