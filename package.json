@@ -28,7 +28,7 @@
       "startCluster": "node ./node_modules/.bin/actionHero startCluster",
       "actionHero": "node ./node_modules/.bin/actionHero",
       "help": "node ./node_modules/.bin/actionHero help",
-      "test": "node ./node_modules/.bin/mocha --reporter spec"
+      "test": "node ./node_modules/.bin/mocha --reporter spec ./test"
     }
   }
   

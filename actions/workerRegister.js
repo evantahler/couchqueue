@@ -12,7 +12,6 @@ exports.action = {
   run: function(api, connection, next){
     var workerId = uuid.v4();
     var raw_queues = connection.params.queues.split(",");
-    console.log(raw_queues)
     var queues = [];
     for(var q in raw_queues){
       queues.push(raw_queues[q].replace(/\s+/g, ''));

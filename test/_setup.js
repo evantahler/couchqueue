@@ -5,20 +5,21 @@ exports._setup = {
   bootTimeout:     60 * 1000,  // travis needs a long time between buckets
   bucket:          null,
   bucketCreatedAt: null,
-  couchbase_config: {
-    "debug" : false,
-    "hosts" : [ "localhost:8091" ],
-    "password" : "password",
-    "bucket" : "test",
-    "user" : "test",
-    "adminUser" : "Administrator",
-    "adminPassword" : "password"
-  },
+  testUrl:         "http://127.0.0.1:9000/api",
   serverConfigChanges: {
     general: {
       id: "test-server-1",
       workers: 1,
       developmentMode: false
+    },
+    couchbase: {
+      "debug" : false,
+      "hosts" : [ "localhost:8091" ],
+      "password" : "password",
+      "bucket" : "test",
+      "user" : "test",
+      "adminUser" : "Administrator",
+      "adminPassword" : "password"
     },
     logger: { transports: null, },
     servers: {
@@ -31,7 +32,7 @@ exports._setup = {
   // as we are deleting and recreating buckets, we need to wait and retry until the bucket is ready
   connect: function(callback){
     var self = this;
-    self.couchbase.connect(self.couchbase_config, function(err, b){
+    self.couchbase.connect(self.serverConfigChanges.couchbase, function(err, b){
       if(err){ 
         // console.log(err);
         setTimeout(function(){ self.connect.bind(self, callback)() }, 100);
@@ -58,22 +59,24 @@ exports._setup = {
         callback();
       });
     }else{
-      callback();
+      self.server.restart(function(){
+        callback();
+      });
     }
   },
   init: function(callback){
     var self = this;
     self.bucketCreatedAt = new Date().getTime();
     self.request({
-      auth: { 'user': self.couchbase_config.adminUser, 'pass': self.couchbase_config.adminPassword },
+      auth: { 'user': self.serverConfigChanges.couchbase.adminUser, 'pass': self.serverConfigChanges.couchbase.adminPassword },
       method: 'DELETE',
-      uri: 'http://' + self.couchbase_config.hosts[0] + '/pools/default/buckets/' + self.couchbase_config.bucket,
+      uri: 'http://' + self.serverConfigChanges.couchbase.hosts[0] + '/pools/default/buckets/' + self.serverConfigChanges.couchbase.bucket,
     }, function(error, response, body){
       self.request({
-        auth: { 'user': self.couchbase_config.adminUser, 'pass': self.couchbase_config.adminPassword },
+        auth: { 'user': self.serverConfigChanges.couchbase.adminUser, 'pass': self.serverConfigChanges.couchbase.adminPassword },
         method: 'POST',
-        form: { name: self.couchbase_config.bucket, ramQuotaMB: 100, authType: "sasl", saslPassword: self.couchbase_config.password, replicaNumber: 0 },
-        uri: 'http://' + self.couchbase_config.hosts[0] + '/pools/default/buckets',
+        form: { name: self.serverConfigChanges.couchbase.bucket, ramQuotaMB: 100, authType: "sasl", saslPassword: self.serverConfigChanges.couchbase.password, replicaNumber: 0 },
+        uri: 'http://' + self.serverConfigChanges.couchbase.hosts[0] + '/pools/default/buckets',
       }, function(error, response, body){
         self.connect(function(){
           self.bootServer(function(){
