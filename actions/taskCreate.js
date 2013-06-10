@@ -11,7 +11,6 @@ exports.action = {
   outputExample: {},
   run: function(api, connection, next){
     
-    var taskId            = uuid.v4();
     var status            = "enqueued";
     var publisher         = connection.params.publisher;
     var data              = JSON.parse(connection.params.data);
@@ -37,7 +36,6 @@ exports.action = {
     }
 
     var task = {
-      taskId: taskId,
       status: status,
       createdAt: new Date().getTime(),
       publisher: publisher,
@@ -51,20 +49,16 @@ exports.action = {
     var interestedSubscriptions = [];
     for(var queue in api.couchqueue.registeredInterests){
       var subsciption = api.couchqueue.registeredInterests[queue];
-      if (subsciption === "*"){
-        // subscribe to all
-        interestedSubscriptions.push(queue);
-      }else{
-        for(var interest in subsciption){
-          // regexp match
-          var regexp = new RegExp(subsciption[interest]);
-          var matched = false;
-          for(var key in data){
-            if(regexp.exec(data[key]) != null && matched == false){
-              interestedSubscriptions.push(queue);
-              matched = true;
-              break;
-            }
+      for(var interest in subsciption){
+        // regexp match
+        var interest_regexp = new RegExp(interest);
+        var subsciption_regexp = new RegExp(subsciption[interest]);
+        var matched = false;
+        for(var key in data){
+          if(interest_regexp.exec(key) != null && subsciption_regexp.exec(data[key]) != null && matched == false){
+            interestedSubscriptions.push(queue);
+            matched = true;
+            break;
           }
         }
       }
@@ -80,20 +74,24 @@ exports.action = {
       var started = 0;
       interestedSubscriptions.forEach(function(queue){
         started++;
-        api.couchqueue.createQueueIfNeeded(queue, function(err){
-          if (err != null){
-            connection.error = err;
-            started = -1;
-            next(connection, true);
-          }else{
-            task.enquedAt = new Date().getTime();
-            api.couchqueue.queueObjects[queue].push(task, function(err){
-              started--;
+        (function(queue){
+          api.couchqueue.createQueueIfNeeded(queue, function(err){
+            if (err != null){
               connection.error = err;
-              if(started == 0){ next(connection, true); }
-            });
-          }
-        });
+              started = -1;
+              next(connection, true);
+            }else{
+              task.taskId = uuid.v4();
+              task.enquedAt = new Date().getTime();
+              task.queue = queue;
+              api.couchqueue.queueObjects[queue].push(task, function(err){
+                started--;
+                connection.error = err;
+                if(started == 0){ next(connection, true); }
+              });
+            }
+          });
+        })(queue)
       });
     }
   }

@@ -9,7 +9,7 @@ exports.action = {
   outputExample: {},
   run: function(api, connection, next){
     if(connection.params.interests === "*"){
-      var interests = "*";
+      var interests = {"^.*": "^.*"};
     }else{
       var interests = JSON.parse(connection.params.interests);
     }
