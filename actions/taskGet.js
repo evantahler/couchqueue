@@ -41,7 +41,7 @@ exports.action = {
         next(connection, true);
       }else{
         connection.response.worker = worker;
-        var remainingQueues = worker.queues;
+        var remainingQueues = worker.queues.reverse();
         loopAllQueues(remainingQueues, function(err, task){
           if(err != null){
             connection.error = err;

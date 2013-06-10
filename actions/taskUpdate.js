@@ -11,6 +11,8 @@ exports.action = {
     
     var allowedStates = ["fail", "success"];
 
+    // TODO: metrics about task completion time
+
     var stateActions = {
       "success" : function(connection, task, next){
         api.couchqueue.tasksInProgress.unset(task.taskId, function(err){
@@ -44,7 +46,6 @@ exports.action = {
               connection.error = "this worker is not working on this task";
               next(connection, true);
             }else{
-              console.log("HERE")
               task.state = connection.params.state;
               stateActions[task.state](connection, task, next);
             }
