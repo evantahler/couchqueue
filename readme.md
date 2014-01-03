@@ -1,6 +1,8 @@
 # Couch Queue
 **A high-availability, distrubuted remote queue based on node.js and couchbase**
 
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/evantahler/couchqueue/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
 (this readme is very likely to change until this project reached v1.)
 
 ## Intro
